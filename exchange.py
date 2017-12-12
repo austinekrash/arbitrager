@@ -20,17 +20,17 @@ class Exchange:
 		return(0)
 
 	def get_balances(self):
+		return({self.currency_from: 0, self.currency_to: 0})
+
+	# Returns fixed_fee, rate_fee, total fees
+	def get_buy_fees(self, amount=0):
 		return(0)
 
-	# Returns fixed_fee, rate_fee
-	def get_buy_fees(self):
+	def get_sell_fees(self, amount=0):
 		return(0)
 
-	def get_sell_fees(self):
+	def get_receive_fees(self, amount=0):
 		return(0)
 
-	def get_receive_fees(self):
-		return(0)
-
-	def get_send_fees(self):
+	def get_send_fees(self, amount=0):
 		return(0)

@@ -3,18 +3,18 @@ import ccxt
 
 from exchange import Exchange
 
-class Luno(Exchange):
+class GDAX(Exchange):
 	def __init__(self, api_key, api_secret, currency_from="BTC", currency_to="ZAR"):
 		super().__init__(currency_from, currency_to)
 
-		self.exchange = ccxt.luno()
+		self.exchange = ccxt.gdax()
 		self.exchange.apiKey = api_key
 		self.exchange.secret = api_secret
 
 	def get_current_rate(self):
 		market = self.exchange.load_markets(True)
-		rates = float(self.exchange.fetch_ticker('BTC/ZAR')['info']['last_trade'])
-		return(1/rates)
+		rates = float(self.exchange.fetch_ticker('BTC/EUR')['info']['price'])
+		return(rates)
 
 	def get_balances(self):
 		balance = self.exchange.fetchBalance()

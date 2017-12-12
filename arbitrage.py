@@ -1,42 +1,53 @@
-from coinbase import Coinbase
+# from coinbase import Coinbase
 from luno import Luno
+from fnb import FNB
+from gdax import GDAX
 
 import argparse
+
+def log(msg, verbose):
+	if verbose is True:
+		print(msg)
 
 # ZAR -> EUR, EUR -> BTC, BTC -> ZAR
 def arbitrage(amount, buy_ex, sell_ex, forex_ex=None, verbose=False):
 	buy_amount = amount
+	start_ex = buy_ex
 
 	if forex_ex:
 		forex_price = forex_ex.get_current_rate()
-		forex_ff, forex_rf = forex_ex.get_buy_fee()
-		forex_fees = forex_ff + (amount*forex_rf)
+		forex_fees = forex_ex.get_buy_fees(amount)
 		buy_amount = (amount - forex_fees)/forex_price
+		start_ex = forex_ex
+
+	log("Arbitrage amount {:.2f}{}".format(amount, start_ex.currency_from), verbose)
 
 	buy_price = buy_ex.get_current_rate()
-	buy_rec_ff, buy_rec_rf = buy_ex.get_receive_fee()
-	buy_ff, buy_rf = buy_ex.get_buy_fee()
-	send_ff, send_rf = buy_ex.get_send_fee()
-
-	sell_price = sell_ex.get_current_rate()
-	sell_rec_ff, sell_rec_rf = sell_ex.get_receive_fee()
-	sell_ff, sell_rf = sell_ex.get_sell_fee()
-	withdraw_ff, withdraw_rf = sell_ex.get_send_fee()
-
-	deposit_fees = buy_rec_ff + (buy_amount * buy_rec_rf)
-	buy_amount = buy_amount - deposit_fees
-	buy_fees = buy_ff + (buy_amount * buy_rf)
+	deposit_fees = buy_ex.get_receive_fees(buy_amount)
+	buy_amount -= deposit_fees
+	buy_fees = buy_ex.get_buy_fees(buy_amount)
 	token_bought = (buy_amount - buy_fees)/buy_price
 
-	send_fees = send_ff + (token_bought * send_rf)
-	token_recv = token_bought - send_fees
-	recv_fees = sell_rec_ff + (token_recv * sell_rec_rf)
-	token_recv = token_recv - recv_fees
+	log("Buy amount {:.2f}{}".format(buy_amount, buy_ex.currency_from), verbose)
+	log("Bought {:.6f}{}".format(token_bought, buy_ex.currency_to), verbose)
 
-	sell_fees = sell_ff + (token_recv * sell_rf)
-	sold_amount = (token_recv/sell_price) - sell_fees
-	withdrawl_fees = withdraw_ff + (sold_amount * withdraw_rf)
+	send_fees = buy_ex.get_send_fees(token_bought)
+	token_recv = token_bought - send_fees
+
+	sell_price = sell_ex.get_current_rate()
+	sell_deposit_fees = sell_ex.get_receive_fees(token_recv)
+	token_recv -= sell_deposit_fees
+
+	log("Received {:.6f}{}".format(token_bought, sell_ex.currency_from), verbose)
+
+	sell_amount = token_recv/sell_price
+	sell_fees = sell_ex.get_sell_fees(sell_amount)
+	sold_amount = sell_amount - sell_fees
+	withdrawl_fees = sell_ex.get_send_fees(sold_amount)
 	amount_out = sold_amount - withdrawl_fees
+
+	log("Sold for {:.2f}{}".format(sold_amount, sell_ex.currency_to), verbose)
+	log("Amount out {:.2f}{}".format(amount_out, sell_ex.currency_to), verbose)
 
 	profit = amount_out - amount
 	roi = profit/amount
@@ -48,8 +59,15 @@ def perform_arbitrage(amount, buy_ex, sell_ex, forex_ex=None):
 	return(0)
 
 def parse_args():
-	parser = ArgumentParser()
+	parser = argparse.ArgumentParser()
 	return(parser.parse_args())
 
 if __name__ == "__main__":
 	args = parse_args()
+
+	forex_ex = FNB("EUR")
+	buy_ex = GDAX("","","EUR","BTC")
+	sell_ex = Luno("","","BTC","ZAR")
+
+	profit, roi = arbitrage(30000, buy_ex, sell_ex, forex_ex=forex_ex, verbose=True)
+

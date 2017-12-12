@@ -22,36 +22,18 @@ class FNB(Exchange):
 
 		return(float(rate))
 
-	def get_balances(self):
-		account = self.exchange.get_accounts()
-
-		return({self.currency_from: amount_f, self.currency_to: amount_t})
-
-
-	def buy(self, amount):
-		return(0)
-
-	def sell(self, amount):
-		return(0)
-
-	def send(self, account, amount):
-		account.send_money(to=account,
-                   amount=amount,
-                   currency=self.currency_to)
-		return(0)
-
-	def receive(self, amount):
-		return(0)
-
-	def fees(self, buy_amount):
+	def get_buy_fees(self, amount=0):
 		fixed_fee = 100
-		rate_fee = (0.5/100)*buy_amount
-		fees = max(min(rate_fee, 660), 125) + fixed_fee
-		return(fixed_fee, rate_fee, fees)
-
+		rate_fee = 0.5/100
+		fees = max(min(rate_fee*amount, 660), 125) + fixed_fee
+		return(fees)
 
 if __name__ == "__main__":
 	fnb = FNB("EUR", "buy")
 	print(fnb.get_current_rate())
-	fnb = FNB("EUR", "sell")
-	print(fnb.get_current_rate())
+	ff, rf, fees = fnb.get_buy_fees(8000)
+	print("FF: {}, RF: {}, FEES: {}".format(ff,rf,fees))
+	ff, rf, fees = fnb.get_buy_fees(8000000)
+	print("FF: {}, RF: {}, FEES: {}".format(ff,rf,fees))
+	ff, rf, fees = fnb.get_buy_fees(53200)
+	print("FF: {}, RF: {}, FEES: {}".format(ff,rf,fees))
