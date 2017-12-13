@@ -11,7 +11,7 @@ class GDAX(Exchange):
 		self.exchange.apiKey = api_key
 		self.exchange.secret = api_secret
 
-	def get_current_rate(self):
+	def get_current_buy_rate(self):
 		market = self.exchange.load_markets(True)
 		rates = float(self.exchange.fetch_ticker('BTC/EUR')['info']['price'])
 		return(rates)
@@ -22,18 +22,3 @@ class GDAX(Exchange):
 		amount_t = balance['info']['balance'][self.currency_to]['total']
 		return({self.currency_from: amount_f, self.currency_to: amount_t})
 
-
-	def buy(self, amount):
-		return(0)
-
-	def sell(self, amount):
-		return(0)
-
-	def send(self, amount):
-		return(0)
-
-	def receive(self, amount):
-		return(0)
-
-	def fees(self, buy_amount):
-		return(0)

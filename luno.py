@@ -4,17 +4,23 @@ import ccxt
 from exchange import Exchange
 
 class Luno(Exchange):
-	def __init__(self, api_key, api_secret, currency_from="BTC", currency_to="ZAR"):
+	def __init__(self, api_key, api_secret, currency_from="ZAR", currency_to="BTC"):
 		super().__init__(currency_from, currency_to)
 
 		self.exchange = ccxt.luno()
 		self.exchange.apiKey = api_key
 		self.exchange.secret = api_secret
 
-	def get_current_rate(self):
+		self.set_sell_fees(variable=1/100)
+		# TODO: This fee is for BTC receive... I need to still add an init method to set appropriate fees
+		self.set_receive_fees(fixed=0.0002)
+		self.set_withdrawl_fees(fixed=8.50)
+
+	# TODO: Add caching to rate check to prevent DDOS pretection blocking access
+	def get_current_buy_rate(self):
 		market = self.exchange.load_markets(True)
-		rates = float(self.exchange.fetch_ticker('BTC/ZAR')['info']['last_trade'])
-		return(1/rates)
+		rates = float(self.exchange.fetch_ticker("{}/{}".format(self.currency_to, self.currency_from))['info']['last_trade'])
+		return(rates)
 
 	def get_balances(self):
 		balance = self.exchange.fetchBalance()
@@ -22,18 +28,25 @@ class Luno(Exchange):
 		amount_t = balance['info']['balance'][self.currency_to]['total']
 		return({self.currency_from: amount_f, self.currency_to: amount_t})
 
+	# TODO: Add if execute... to actually perform the trade
+	def buy(self, amount, include_fees=True, execute=False):
+		transaction = super().buy(amount, include_fees=include_fees)
+		
+		return(transaction)
 
-	def buy(self, amount):
-		return(0)
+	def sell(self, amount, include_fees=True, execute=False):
+		transaction = super().sell(amount, include_fees=include_fees)
+		
+		return(transaction)
 
-	def sell(self, amount):
-		return(0)
+if __name__ == "__main__":
+	from dotenv import load_dotenv
+	import os
+	
+	load_dotenv('.env')
+	LUNO_KEY = os.environ.get('LUNO_KEY')
+	LUNO_SECRET = os.environ.get('LUNO_SECRET')
 
-	def send(self, amount):
-		return(0)
+	luno = Luno(LUNO_KEY, LUNO_SECRET, currency_from="ZAR", currency_to="BTC")
+	print(luno.sell(0.156, include_fees=True))
 
-	def receive(self, amount):
-		return(0)
-
-	def fees(self, buy_amount):
-		return(0)
