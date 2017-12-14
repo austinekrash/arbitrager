@@ -6,6 +6,7 @@ from fnb import FNB
 from gdax import GDAX
 from coinbase_ex import CoinbaseEx
 
+import pandas as pd
 import argparse
 
 TRANSACTION_LOG_ITEM = {
@@ -28,9 +29,13 @@ def log(msg, verbose):
 		print(msg)
 
 # ZAR -> EUR, EUR -> BTC, BTC -> ZAR
-def arbitrage(amount, buy_ex, sell_ex, forex_ex=None, forex_fees=True, verbose=False, execute=False):
+def arbitrage(amount, buy_ex, sell_ex, forex_ex=None, forex_fees=True, log_mode="V", execute=False):
 	initial_amount = amount
 	forex_transaction = None
+
+	verbose = False
+	if log_mode == "V":
+		verbose = True
 
 	trans_store = TRANSACTION_LOG_ITEM.copy()
 
@@ -94,7 +99,18 @@ def arbitrage(amount, buy_ex, sell_ex, forex_ex=None, forex_fees=True, verbose=F
 
 	log("Profit: {:.2f} {}\tMargin:{:.3f}".format(profit, sell_ex.currency_from, margin), verbose)
 
+	log_transaction(trans_store, mode=log_mode)
+
 	return(profit, margin, trans_store)
+
+def log_transaction(transaction, mode="STD"):
+	if mode == "STD":
+		print(transaction)
+	elif mode == "CSV":
+		df = pd.DataFrame.from_records([transaction])
+		header = not os.path.exists("log_arbitrage.csv")
+		df.to_csv("log_arbitrage.csv", mode='a', header=header, index=False)
+		print("Logged to CSV: profit: {:.2f} margin: {:.2f}".format(transaction["profit"], transaction["margin"]))
 
 def parse_args():
 	parser = argparse.ArgumentParser()
@@ -105,10 +121,11 @@ def parse_args():
 	parser.add_argument("--no_forex_buy", action="store_true", help="This will assume the arbitrage amount is already in Forex currency specified")
 	parser.add_argument("--forex_with_fees", action="store_true", help="Assumes we want to include the forex fees in the arbitrage amount")
 	parser.add_argument("--fmt", default="STD", choices=["CSV", "STD", "V"], help="How to display the output")
+	parser.add_argument("--watch", type=int, default=0, help="Number of seconds to grab data in a loop, if zero will only run once")
 
 	return(parser.parse_args())
 
-def evaluate_arbitrage(args):
+def main(args):
 	load_dotenv('.env')
 	CB_KEY = os.environ.get('CB_KEY')
 	CB_SECRET = os.environ.get('CB_SECRET')
@@ -127,13 +144,15 @@ def evaluate_arbitrage(args):
 	if args.fmt == "V":
 		verbose = True
 
-	profit, margin, transaction = arbitrage(args.amount, buy_ex, sell_ex, forex_ex=forex_ex, forex_fees=args.forex_with_fees, verbose=verbose, execute=False)
-
-	if args.fmt == "STD":
-		print(transaction)
-	elif args.fmt == "CSV":
-		print(transaction)
+	if args.watch == 0:
+		profit, margin, transaction = arbitrage(args.amount, buy_ex, sell_ex, forex_ex=forex_ex, forex_fees=args.forex_with_fees, execute=False, log_mode=args.fmt)
+	else:
+		from apscheduler.schedulers.background import BlockingScheduler
+		scheduler = BlockingScheduler()
+		scheduler.add_job(arbitrage, args=[args.amount, buy_ex, sell_ex], kwargs={"forex_ex":forex_ex, "forex_fees":args.forex_with_fees, "execute":False, "log_mode":args.fmt},
+							trigger='interval', seconds=args.watch, id='arbitrager')
+		scheduler.start()
 
 if __name__ == "__main__":
 	args = parse_args()
-	evaluate_arbitrage(args)
+	main(args)
