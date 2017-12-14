@@ -124,7 +124,7 @@ def evaluate_arbitrage(args):
 	sell_ex = Luno(LUNO_KEY,LUNO_SECRET, currency_from=args.local, currency_to=args.token)
 
 	verbose = False
-	if args.fmt == "VERBOSE":
+	if args.fmt == "V":
 		verbose = True
 
 	profit, margin, transaction = arbitrage(args.amount, buy_ex, sell_ex, forex_ex=forex_ex, forex_fees=args.forex_with_fees, verbose=verbose, execute=False)
@@ -132,7 +132,7 @@ def evaluate_arbitrage(args):
 	if args.fmt == "STD":
 		print(transaction)
 	elif args.fmt == "CSV":
-
+		print(transaction)
 
 if __name__ == "__main__":
 	args = parse_args()
