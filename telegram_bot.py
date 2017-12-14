@@ -61,17 +61,17 @@ async def on_chat_message(msg):
 
         kybrd = ReplyKeyboardRemove()
         await bot.sendMessage(chat_id, "How much ZAR do you want to spend on {}?".format(token), reply_markup=kybrd)
-    
+
     elif amount > 0:
         await bot.sendMessage(chat_id, "Simulating {} ZAR for {} via {}...".format(amount, token, buy_currency))
 
         forex_ex = FNB(buy_currency)
-        buy_ex = CoinbaseEx(CB_KEY, CB_SECRET, buy_currency, token)
+        buy_ex = GDAX(CB_KEY, CB_SECRET, buy_currency, token)
         sell_ex = Luno(LUNO_KEY,LUNO_SECRET, currency_from="ZAR", currency_to=token)
 
-        profit, margin = arbitrage(amount, buy_ex, sell_ex, forex_ex, verbose=False)
-        
-        await bot.sendMessage(chat_id, "Arbitrage of {:.2f} would yield {:.2f} profit.\nCurrent margin is {:.2f}".format(amount, profit, margin), 
+        profit, margin = arbitrage(amount, buy_ex, sell_ex, forex_ex=forex_ex, forex_fees=True, verbose=False)
+
+        await bot.sendMessage(chat_id, "Arbitrage of {:.2f} would yield {:.2f} profit.\nCurrent margin is {:.2f}".format(amount, profit, margin),
             reply_to_message_id=msg['message_id'])
 
     else:
@@ -83,7 +83,7 @@ CB_SECRET = os.environ.get('CB_SECRET')
 LUNO_KEY = os.environ.get('LUNO_KEY')
 LUNO_SECRET = os.environ.get('LUNO_SECRET')
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-
+print(TELEGRAM_TOKEN)
 bot = telepot.aio.Bot(TELEGRAM_TOKEN)
 answerer = telepot.aio.helper.Answerer(bot)
 loop = asyncio.get_event_loop()

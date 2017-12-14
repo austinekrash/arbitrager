@@ -31,18 +31,17 @@ class Luno(Exchange):
 	# TODO: Add if execute... to actually perform the trade
 	def buy(self, amount, include_fees=True, execute=False):
 		transaction = super().buy(amount, include_fees=include_fees)
-		
+
 		return(transaction)
 
 	def sell(self, amount, include_fees=True, execute=False):
 		transaction = super().sell(amount, include_fees=include_fees)
-		
+
 		return(transaction)
 
 if __name__ == "__main__":
 	from dotenv import load_dotenv
 	import os
-	
 	load_dotenv('.env')
 	LUNO_KEY = os.environ.get('LUNO_KEY')
 	LUNO_SECRET = os.environ.get('LUNO_SECRET')

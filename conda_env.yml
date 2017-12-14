@@ -1,0 +1,48 @@
+name: arbitrager
+channels:
+- conda-forge
+- defaults
+dependencies:
+- ca-certificates=2017.11.5=0
+- certifi=2017.11.5=py36_0
+- click=6.7=py36_0
+- ncurses=5.9=10
+- openssl=1.0.2n=0
+- pip=9.0.1=py36_0
+- python=3.6.3=4
+- python-dotenv=0.6.1=py36_0
+- readline=7.0=0
+- setuptools=38.2.4=py36_0
+- sqlite=3.20.1=0
+- tk=8.6.7=0
+- wheel=0.30.0=py_1
+- xz=5.2.3=0
+- zlib=1.2.11=0
+- pip:
+  - aiodns==1.1.1
+  - aiohttp==2.3.6
+  - async-timeout==2.0.0
+  - beautifulsoup4==4.6.0
+  - bs4==0.0.1
+  - cchardet==2.1.1
+  - ccxt==1.10.377
+  - chardet==3.0.4
+  - coinbase==2.0.6
+  - html5lib==1.0.1
+  - idna==2.6
+  - lxml==4.1.1
+  - multidict==3.3.2
+  - numpy==1.13.3
+  - pandas==0.21.1
+  - pycares==2.3.0
+  - pycrypto==2.6.1
+  - python-dateutil==2.6.1
+  - pytz==2017.3
+  - requests==2.18.4
+  - six==1.11.0
+  - telepot==11.0
+  - urllib3==1.22
+  - webencodings==0.5.1
+  - yarl==0.16.0
+prefix: /home/lloyd/anaconda3/envs/arbitrager
+

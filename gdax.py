@@ -11,6 +11,13 @@ class GDAX(Exchange):
 		self.exchange.apiKey = api_key
 		self.exchange.secret = api_secret
 
+		self.set_sell_fees(variable=2.5/100)
+		self.set_buy_fees(variable=0)
+		self.set_send_fees(variable=0.1/100)
+		self.set_receive_fees(fixed=0.0002)
+		self.set_withdrawl_fees(fixed=0.15)
+		self.set_deposit_fees(fixed=0.15)
+
 	def get_current_buy_rate(self):
 		market = self.exchange.load_markets(True)
 		rates = float(self.exchange.fetch_ticker('BTC/EUR')['info']['price'])
