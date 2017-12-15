@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from datetime import datetime
 
 from luno import Luno
 from fnb import FNB
@@ -10,6 +11,7 @@ import pandas as pd
 import argparse
 
 TRANSACTION_LOG_ITEM = {
+	"timestamp": 0,
 	"forex_type": "",
 	"local_type": "",
 	"token_type": "",
@@ -39,6 +41,7 @@ def arbitrage(amount, buy_ex, sell_ex, forex_ex=None, forex_fees=True, log_mode=
 
 	trans_store = TRANSACTION_LOG_ITEM.copy()
 
+	trans_store["timestamp"] = datetime.utcnow().timestamp()
 	trans_store["forex_type"] = buy_ex.currency_from
 	trans_store["local_type"] = sell_ex.currency_from
 	trans_store["token_type"] = buy_ex.currency_to
