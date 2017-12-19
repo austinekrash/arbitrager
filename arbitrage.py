@@ -1,5 +1,4 @@
 import os
-from dotenv import load_dotenv
 from datetime import datetime
 
 from exchanges import ExchangeFactory
@@ -145,7 +144,6 @@ def main(args):
 		sell_keys = api_config[args.sell_ex.lower()]
 
 	buy_ex = ExchangeFactory.get(args.buy_ex, **buy_keys, currency_from=args.forex, currency_to=args.token)
-	#buy_ex = CoinbaseEx(CB_KEY, CB_SECRET,"EUR","BTC")
 	sell_ex = ExchangeFactory.get(args.sell_ex, **sell_keys, currency_from=args.local, currency_to=args.token)
 
 	verbose = False
