@@ -2,13 +2,11 @@ import os
 from dotenv import load_dotenv
 from datetime import datetime
 
-from luno import Luno
-from fnb import FNB
-from gdax import GDAX
-from coinbase_ex import CoinbaseEx
+from exchanges import ExchangeFactory
 
 import pandas as pd
 import argparse
+import yaml
 
 TRANSACTION_LOG_ITEM = {
 	"timestamp": 0,
@@ -121,7 +119,9 @@ def parse_args():
 	parser.add_argument("--amount", type=float, help="Specify an amount to arbitrage")
 	parser.add_argument("--local", default="ZAR", choices=["EUR", "USD", "ZAR"], help="Local currency to use for sale of tokens")
 	parser.add_argument("--token", default="BTC", choices=["BTC", "ETH"], help="Token to arbitrage")
-	parser.add_argument("--no_forex_buy", action="store_true", help="This will assume the arbitrage amount is already in Forex currency specified")
+	parser.add_argument("--forex_ex", default="fnb", choices=ExchangeFactory.get_names() + ['none'], help="Exchange to use to buy forex")
+	parser.add_argument("--sell_ex", default="luno", choices=ExchangeFactory.get_names(), help="Local exchange to sell on")
+	parser.add_argument("--buy_ex", default="bitstamp", choices=ExchangeFactory.get_names(), help="Foreign exchange to buy on")
 	parser.add_argument("--forex_with_fees", action="store_true", help="Assumes we want to include the forex fees in the arbitrage amount")
 	parser.add_argument("--fmt", default="STD", choices=["CSV", "STD", "V"], help="How to display the output")
 	parser.add_argument("--watch", type=int, default=0, help="Number of seconds to grab data in a loop, if zero will only run once")
@@ -129,19 +129,24 @@ def parse_args():
 	return(parser.parse_args())
 
 def main(args):
-	load_dotenv('.env')
-	CB_KEY = os.environ.get('CB_KEY')
-	CB_SECRET = os.environ.get('CB_SECRET')
-	LUNO_KEY = os.environ.get('LUNO_KEY')
-	LUNO_SECRET = os.environ.get('LUNO_SECRET')
-
+	api_config = yaml.load(open("secrets.yml"))
+	
 	forex_ex = None
-	if args.no_forex_buy is False:
-			forex_ex = FNB(args.forex)
+	if args.forex_ex != "none":
+			forex_ex = ExchangeFactory.get("fnb", currency_to=args.forex)
 
-	buy_ex = GDAX("","", args.forex, args.token)
+	buy_keys = {"key": None, "secret": None}
+	sell_keys = {"key": None, "secret": None}
+
+	if args.buy_ex.lower() in api_config.keys():
+		buy_keys = api_config[args.buy_ex.lower()]
+
+	if args.sell_ex.lower() in api_config.keys():
+		sell_keys = api_config[args.sell_ex.lower()]
+
+	buy_ex = ExchangeFactory.get(args.buy_ex, **buy_keys, currency_from=args.forex, currency_to=args.token)
 	#buy_ex = CoinbaseEx(CB_KEY, CB_SECRET,"EUR","BTC")
-	sell_ex = Luno(LUNO_KEY,LUNO_SECRET, currency_from=args.local, currency_to=args.token)
+	sell_ex = ExchangeFactory.get(args.sell_ex, **sell_keys, currency_from=args.local, currency_to=args.token)
 
 	verbose = False
 	if args.fmt == "V":

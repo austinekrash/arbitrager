@@ -1,7 +1,7 @@
 import numpy as np 
 
 class Exchange:
-	def __init__(self, currency_from, currency_to):
+	def __init__(self, currency_from=None, currency_to=None):
 		self.currency_from = currency_from
 		self.currency_to = currency_to
 

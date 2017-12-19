@@ -1,15 +1,15 @@
 import numpy as np
 import ccxt
 
-from exchange import Exchange
+from .exchange import Exchange
 
 class GDAX(Exchange):
-	def __init__(self, api_key, api_secret, currency_from="BTC", currency_to="ZAR"):
+	def __init__(self, key=None, secret=None, currency_from="BTC", currency_to="ZAR"):
 		super().__init__(currency_from, currency_to)
 
 		self.exchange = ccxt.gdax()
-		self.exchange.apiKey = api_key
-		self.exchange.secret = api_secret
+		self.exchange.apiKey = key
+		self.exchange.secret = secret
 
 		self.set_sell_fees(variable=2.5/100)
 		self.set_buy_fees(variable=0)
@@ -20,7 +20,7 @@ class GDAX(Exchange):
 
 	def get_current_buy_rate(self):
 		market = self.exchange.load_markets(True)
-		rates = float(self.exchange.fetch_ticker('BTC/EUR')['info']['price'])
+		rates = float(self.exchange.fetch_ticker("{}/{}".format(self.currency_to, self.currency_from))['info']['price'])
 		return(rates)
 
 	def get_balances(self):

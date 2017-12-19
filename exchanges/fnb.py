@@ -1,4 +1,4 @@
-from exchange import Exchange
+from .exchange import Exchange
 import pandas as pd
 
 class FNB(Exchange):

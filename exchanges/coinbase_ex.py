@@ -1,15 +1,16 @@
 from coinbase.wallet.client import Client
 from coinbase.wallet.error import TwoFactorRequiredError
 
-from exchange import Exchange
+from .exchange import Exchange
 
 class CoinbaseEx(Exchange):
-	def __init__(self, api_key, api_secret, currency_from="EUR", currency_to="BTC"):
+
+	def __init__(self, key=None, secret=None, currency_from="EUR", currency_to="BTC"):
 		super().__init__(currency_from, currency_to)
 
-		self.exchange = Client(api_key, api_secret)
-		self.exchange.apikey = api_key
-		self.exchange.secret = api_secret
+		self.exchange = Client(key, secret)
+		self.exchange.apikey = key
+		self.exchange.secret = secret
 
 		self.set_buy_fees(variable=0.0149)
 		self.set_sell_fees(variable=0.0149)

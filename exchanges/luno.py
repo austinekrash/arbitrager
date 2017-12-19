@@ -1,15 +1,15 @@
 import numpy as np
 import ccxt
 
-from exchange import Exchange
+from .exchange import Exchange
 
 class Luno(Exchange):
-	def __init__(self, api_key, api_secret, currency_from="ZAR", currency_to="BTC"):
+	def __init__(self, key=None, secret=None, currency_from="ZAR", currency_to="BTC"):
 		super().__init__(currency_from, currency_to)
 
 		self.exchange = ccxt.luno()
-		self.exchange.apiKey = api_key
-		self.exchange.secret = api_secret
+		self.exchange.apiKey = key
+		self.exchange.secret = secret
 
 		self.set_sell_fees(variable=1/100)
 		# TODO: This fee is for BTC receive... I need to still add an init method to set appropriate fees
