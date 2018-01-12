@@ -27,8 +27,22 @@ def log(msg, verbose):
 	if verbose is True:
 		print(msg)
 
+def process_forex(amount, forex_ex, forex_fees, execute, currency_last, verbose=False):
+	if (forex_ex.currency_from == currency_last):
+		forex_transaction = forex_ex.buy(amount, include_fees=forex_fees, execute=execute)
+		log("Bought {:.2f} {} at a rate of {:.4f} {}".format(forex_transaction["bought"], forex_ex.currency_to,
+			forex_transaction["rate"],forex_ex.currency_from), verbose)
+		amount, rate, fees = forex_transaction["bought"], forex_transaction["rate"], forex_transaction["fees"]
+
+	elif (forex_ex.currency_to == currency_last):
+		forex_transaction = forex_ex.sell(amount, include_fees=forex_fees, execute=execute)
+		log("Sold {:.2f} {} at a rate of {:.4f} {}".format(forex_transaction["sold"], forex_ex.currency_from,
+			forex_transaction["rate"],forex_ex.currency_to), verbose)
+		amount, rate, fees = forex_transaction["sold"], forex_transaction["rate"], forex_transaction["fees"]
+	return(amount, rate, fees)
+
 # ZAR -> EUR, EUR -> BTC, BTC -> ZAR
-def arbitrage(amount, buy_ex, sell_ex, forex_ex=None, forex_fees=True, log_mode="V", execute=False):
+def arbitrage(amount, base_currency, buy_ex, sell_ex, forex_ex=None, forex_fees=True, log_mode="V", execute=False):
 	initial_amount = amount
 	forex_transaction = None
 
@@ -43,19 +57,16 @@ def arbitrage(amount, buy_ex, sell_ex, forex_ex=None, forex_fees=True, log_mode=
 	trans_store["local_type"] = sell_ex.currency_from
 	trans_store["token_type"] = buy_ex.currency_to
 	trans_store["initial"] = amount
-
-	start_ex = buy_ex
-	if forex_ex:
+	
+	if base_currency == buy_ex.currency_from:
+		start_ex = buy_ex
+	elif (forex_ex is not None) and (buy_ex.currency_from != base_currency):
 		start_ex = forex_ex
 
-	log("Arbitrage amount {:.2f} {}".format(amount, start_ex.currency_from), verbose)
+	log("Arbitrage amount {:.2f} {}".format(amount, base_currency), verbose)
 
-	if forex_ex:
-		forex_transaction = forex_ex.buy(amount, include_fees=forex_fees, execute=execute)
-		log("Bought {:.2f} {} at a rate of {:.4f} {}".format(forex_transaction["bought"], forex_ex.currency_to,
-			forex_transaction["rate"],forex_ex.currency_from), verbose)
-		amount = forex_transaction["bought"]
-		trans_store["forex_rate"] = forex_transaction["rate"]
+	if forex_ex and start_ex == forex_ex:
+		amount, trans_store["forex_rate"], forex_fees = process_forex(amount, forex_ex, forex_fees, execute, base_currency, verbose)
 
 	transaction = buy_ex.deposit(amount, include_fees=True, execute=execute)
 	log("Deposited {:.2f} {}".format(transaction["deposited"], buy_ex.currency_from), verbose)
@@ -86,10 +97,15 @@ def arbitrage(amount, buy_ex, sell_ex, forex_ex=None, forex_fees=True, log_mode=
 	transaction = sell_ex.withdrawl(transaction["sold"], include_fees=True, execute=execute)
 	log("Withdrew {:.2f} {}".format(transaction["withdrew"], sell_ex.currency_from), verbose)
 
-	profit = transaction["withdrew"] - initial_amount
+	withdrew = transaction["withdrew"]
+
+	if forex_ex and base_currency != sell_ex.currency_from:
+		withdrew, trans_store["forex_rate"], forex_fees = process_forex(withdrew, forex_ex, forex_fees, execute, sell_ex.currency_from, verbose)
+
+	profit = withdrew - initial_amount
 
 	if forex_ex and forex_fees is False:
-		profit -= forex_transaction["fees"]
+		profit -= forex_fees
 
 	margin = profit/initial_amount*100
 
@@ -97,7 +113,7 @@ def arbitrage(amount, buy_ex, sell_ex, forex_ex=None, forex_fees=True, log_mode=
 	trans_store["profit"] = profit
 	trans_store["margin"] = margin
 
-	log("Profit: {:.2f} {}\tMargin:{:.3f}".format(profit, sell_ex.currency_from, margin), verbose)
+	log("Profit: {:.2f} {}\tMargin:{:.3f}".format(profit, base_currency, margin), verbose)
 
 	log_transaction(trans_store, mode=log_mode)
 
@@ -114,9 +130,10 @@ def log_transaction(transaction, mode="STD"):
 
 def parse_args():
 	parser = argparse.ArgumentParser()
-	parser.add_argument("--forex", default="EUR", choices=["EUR", "USD", "ZAR"], help="Forex currency to use")
+	parser.add_argument("--buy", default="EUR", choices=["EUR", "USD", "ZAR"], help="Currency we buying tokens in")
+	parser.add_argument("--base", default="ZAR", choices=["EUR", "USD", "ZAR"], help="Base currency is assumed to be the starting and ending currency, and profits remported in this currency")
 	parser.add_argument("--amount", type=float, help="Specify an amount to arbitrage")
-	parser.add_argument("--local", default="ZAR", choices=["EUR", "USD", "ZAR"], help="Local currency to use for sale of tokens")
+	parser.add_argument("--sell", default="ZAR", choices=["EUR", "USD", "ZAR"], help="Currency to use for sale of tokens")
 	parser.add_argument("--token", default="BTC", choices=["BTC", "ETH"], help="Token to arbitrage")
 	parser.add_argument("--forex_ex", default="fnb", choices=ExchangeFactory.get_names() + ['none'], help="Exchange to use to buy forex")
 	parser.add_argument("--sell_ex", default="luno", choices=ExchangeFactory.get_names(), help="Local exchange to sell on")
@@ -128,12 +145,11 @@ def parse_args():
 	return(parser.parse_args())
 
 def main(args):
+	forex_ex = None
+	forex_first = False
+
 	api_config = yaml.load(open("secrets.yml"))
 	
-	forex_ex = None
-	if args.forex_ex != "none":
-			forex_ex = ExchangeFactory.get("fnb", currency_to=args.forex)
-
 	buy_keys = {"key": None, "secret": None}
 	sell_keys = {"key": None, "secret": None}
 
@@ -143,15 +159,25 @@ def main(args):
 	if args.sell_ex.lower() in api_config.keys():
 		sell_keys = api_config[args.sell_ex.lower()]
 
-	buy_ex = ExchangeFactory.get(args.buy_ex, **buy_keys, currency_from=args.forex, currency_to=args.token)
-	sell_ex = ExchangeFactory.get(args.sell_ex, **sell_keys, currency_from=args.local, currency_to=args.token)
+	if args.forex_ex != "none":
+		if args.buy != args.base:
+			forex_ex = ExchangeFactory.get("fnb", currency_from=args.base, currency_to=args.buy)
+		elif args.sell != args.base:
+			forex_ex = ExchangeFactory.get("fnb", currency_from=args.sell, currency_to=args.base)
+
+	if forex_ex is None and (args.base != args.sell) and (args.base != args.buy):
+		print("Currency pairs do not match, and foreign exchange is not specified.")
+		exit(1)
+
+	buy_ex = ExchangeFactory.get(args.buy_ex, **buy_keys, currency_from=args.buy, currency_to=args.token)
+	sell_ex = ExchangeFactory.get(args.sell_ex, **sell_keys, currency_from=args.sell, currency_to=args.token)
 
 	verbose = False
 	if args.fmt == "V":
 		verbose = True
 
 	if args.watch == 0:
-		profit, margin, transaction = arbitrage(args.amount, buy_ex, sell_ex, forex_ex=forex_ex, forex_fees=args.forex_with_fees, execute=False, log_mode=args.fmt)
+		profit, margin, transaction = arbitrage(args.amount, args.base, buy_ex, sell_ex, forex_ex=forex_ex, forex_fees=args.forex_with_fees, execute=False, log_mode=args.fmt)
 	else:
 		from apscheduler.schedulers.background import BlockingScheduler
 		scheduler = BlockingScheduler()
