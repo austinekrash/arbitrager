@@ -57,7 +57,7 @@ def arbitrage(amount, base_currency, buy_ex, sell_ex, forex_ex=None, forex_fees=
 	trans_store["local_type"] = sell_ex.currency_from
 	trans_store["token_type"] = buy_ex.currency_to
 	trans_store["initial"] = amount
-	
+
 	if base_currency == buy_ex.currency_from:
 		start_ex = buy_ex
 	elif (forex_ex is not None) and (buy_ex.currency_from != base_currency):
@@ -149,7 +149,7 @@ def main(args):
 	forex_first = False
 
 	api_config = yaml.load(open("secrets.yml"))
-	
+
 	buy_keys = {"key": None, "secret": None}
 	sell_keys = {"key": None, "secret": None}
 
@@ -181,7 +181,7 @@ def main(args):
 	else:
 		from apscheduler.schedulers.background import BlockingScheduler
 		scheduler = BlockingScheduler()
-		scheduler.add_job(arbitrage, args=[args.amount, buy_ex, sell_ex], kwargs={"forex_ex":forex_ex, "forex_fees":args.forex_with_fees, "execute":False, "log_mode":args.fmt},
+		scheduler.add_job(arbitrage, args=[args.amount, args.base, buy_ex, sell_ex], kwargs={"forex_ex":forex_ex, "forex_fees":args.forex_with_fees, "execute":False, "log_mode":args.fmt},
 							trigger='interval', seconds=args.watch, id='arbitrager')
 		scheduler.start()
 

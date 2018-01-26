@@ -3,7 +3,7 @@ import pandas as pd
 
 class FNB(Exchange):
 	def __init__(self, currency_from="ZAR", currency_to="EUR"):
-		# ZAR is the benchmark currency so 
+		# ZAR is the benchmark currency so
 		if currency_from == "ZAR":
 			super().__init__(currency_from, currency_to)
 		elif currency_to == "ZAR":
@@ -14,8 +14,7 @@ class FNB(Exchange):
             'sell': 'Bank Buying TT',
         }
 
-		self.exchange = pd.read_html('https://www.fnb.co.za/Controller?nav=rates.forex.list.ForexRatesList',
-            index_col=1, header=0, match=self.currency_to)[0]
+		self._get_rate()
 		self.set_buy_fees(fixed=110, variable=0.55/100)
 		self.set_sell_fees(fixed=0, variable=0.55/100)
 
